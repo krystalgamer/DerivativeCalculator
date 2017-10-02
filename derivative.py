@@ -1,6 +1,8 @@
 import re
 from sys import argv
 
+printn = lambda x : print(x, end='')
+
 operatorList = ['+', '-', '*', '/']
 
 class Converter(object):
@@ -97,7 +99,7 @@ class Converter(object):
                 continue
 
             for op in opStack:
-                if opPrecedence[opList[0]] <= opPrecedence[op]:
+                if Converter.opPrecedence[opList[0]] <= Converter.opPrecedence[op]:
                     #it's always the top one 
                     output.append(opStack.pop(0))
                 else:
@@ -118,41 +120,93 @@ class Operand(object):
         self.type = (OPERAND_VARIABLE if 'x' in operand else OPERAND_CONSTANT) 
         self.value = float(operand.replace('x', ''))
 
+    def Print(self):
+        printn(str(self.value) + ('x ' if self.type == OPERAND_VARIABLE else ' '))
+        return True
+
+
 class Branch(object):
 
     def __init__(self, operand1=None, operand2=None, operator=None):
-        self.operand1 = operand1
-        self.operand2 = operand2
+        self.operand = [operand1, operand2]
         self.operator = operator
+
+    def Print(self):
+        for i in range(2):
+            if isinstance(self.operand[i], Branch) or isinstance(self.operand[i], Operand):
+                if not self.operand[i].Print():
+                    print('Error printing operand')
+                    return False
+            elif isinstance(self.operand[i], None):
+                continue
+            else:
+                print('Unknwon operand type')
+                return False
+
+        printn(self.operator)
+        return True
         
 class Derivator(object):
 
     def SetupDerivation(self):
 
+        #Creates basic output queue
         for entry in self.expression:
-        
             if entry in operatorList:
-                if len(self.branch) < 2:
+                if len(self.output) < 2:
                     print('Not enough operands to work with, quitting')
                     return False
-                operand2 = self.branch.pop()
-                operand1 = self.branch.pop()
+
+                operand2, operand1 = self.output.pop(), self.output.pop()
 
                 if isinstance(operand2, str):
                     operand2 = Operand(operand2)
                 if isinstance(operand1, str):
                     operand1 = Operand(operand1)
         
-                self.branch.append(Branch(operand1, operand2, entry))
+                self.output.append(Branch(operand1, operand2, entry))
             else:
-                self.branch.append(entry)
+                #is a number move to the queue
+                self.output.append(entry)
         
+        if len(self.output) != 1:
+            print('Error creating ouput queue')
+            return False
+
+        self.branch = self.output.pop()
+        self.branch.Print()
         return True
 
+
+    def Derivate(self, *branch):
+       
+        if len(branch) > 1:
+            print('Error, I only take 1 branch')
+            return False
+
+        return self.derivateFunc[branch[0].operator if len(branch) else self.branch.operator](branch)
+        
     def __init__(self, rpnExpression):
         self.expression = rpnExpression
-        self.branch = []
+        self.output = []
+        self.branch = None
+        self.derivateFunc = {'+' : self.DerivateSum}
         
+    def DerivateSum(self, *branch):
+        
+        workingBranch = branch[0] if len(branch) else self.branch
+
+        for i in range(2):
+            if isinstance(workingBranch.operand[i], Operand):
+                if workingBranch.operand[i].type == OPERAND_CONSTANT:
+                    workingBranch.operand[i].value = 0
+                elif workingBranch.operand[i].type == OPERAND_VARIABLE:
+                    workingBranch.operand[i].type == OPERAND_CONSTANT
+                else:
+                    print('Unknown operand type')
+                    return False
+        return True
+
 def main():
 
     if len(argv) < 2:
@@ -170,11 +224,18 @@ def main():
 
     if rpnExpression == None:
         return
+    
     derivator = Derivator(rpnExpression)
     if not derivator.SetupDerivation():
         print('NOO')
         return
-    print('YAS')
+    print('Yap')
+
+    if not derivator.Derivate():
+        print('NAYE')
+        return
+    print('WHOOOO YEA')
+
     
     return
 
