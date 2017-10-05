@@ -174,34 +174,33 @@ class Derivator(object):
             return False
 
         self.branch = self.output.pop()
-        self.branch.Print()
         return True
 
 
-    def Derivate(self, *branch):
+    def Derivate(self, branch=None):
        
-        if len(branch) > 1:
-            print('Error, I only take 1 branch')
-            return False
-
-        return self.derivateFunc[branch[0].operator if len(branch) else self.branch.operator](branch)
+        return self.derivateFunc[branch[0].operator if branch != None else self.branch.operator](branch)
         
     def __init__(self, rpnExpression):
         self.expression = rpnExpression
         self.output = []
         self.branch = None
-        self.derivateFunc = {'+' : self.DerivateSum}
+        self.derivateFunc = {'+' : self.DerivateSum, '-' : self.DerivateSum}
+    
+    def Print(self):
+        self.branch.Print()
+        print('')
         
-    def DerivateSum(self, *branch):
+    def DerivateSum(self, branch):
         
-        workingBranch = branch[0] if len(branch) else self.branch
+        workingBranch = (branch[0] if branch != None else self.branch)
 
         for i in range(2):
             if isinstance(workingBranch.operand[i], Operand):
                 if workingBranch.operand[i].type == OPERAND_CONSTANT:
                     workingBranch.operand[i].value = 0
                 elif workingBranch.operand[i].type == OPERAND_VARIABLE:
-                    workingBranch.operand[i].type == OPERAND_CONSTANT
+                    workingBranch.operand[i].type = OPERAND_CONSTANT
                 else:
                     print('Unknown operand type')
                     return False
@@ -229,14 +228,13 @@ def main():
     if not derivator.SetupDerivation():
         print('NOO')
         return
-    print('Yap')
 
+    derivator.Print()
     if not derivator.Derivate():
         print('NAYE')
         return
-    print('WHOOOO YEA')
 
-    
+    derivator.Print()
     return
 
 
