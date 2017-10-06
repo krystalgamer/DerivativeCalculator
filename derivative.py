@@ -124,6 +124,8 @@ class Operand(object):
         printn(str(self.value) + ('x ' if self.type == OPERAND_VARIABLE else ' '))
         return True
 
+    def Duplicate(self):
+        return Operand(str(self.value) + ('x ' if self.type == OPERAND_VARIABLE else ' '))
 
 class Branch(object):
 
@@ -143,8 +145,11 @@ class Branch(object):
                 print('Unknwon operand type')
                 return False
 
-        printn(self.operator)
+        printn(self.operator + ' ')
         return True
+    
+    def Duplicate(self):
+        return Branch(self.operand[0].Duplicate(), self.operand[1].Duplicate(), self.operator)
         
 class Derivator(object):
 
@@ -177,34 +182,52 @@ class Derivator(object):
         return True
 
 
-    def Derivate(self, branch=None):
-       
-        return self.derivateFunc[branch[0].operator if branch != None else self.branch.operator](branch)
+    def Derivate(self, deriv=None):
+        if deriv == None or isinstance(deriv, Branch):
+            return self.derivateFunc[deriv.operator if deriv != None else self.branch.operator](deriv)
+        elif isinstance(deriv, Operand):
+            if deriv.type == OPERAND_CONSTANT:
+                deriv.value = 0
+            elif deriv.type == OPERAND_VARIABLE:
+                deriv.type = OPERAND_CONSTANT
+            else:
+                print('Unknown operand type')
+                return False
+        else:
+            print('Unknown deriv type')
+            return False
+        return True
         
     def __init__(self, rpnExpression):
         self.expression = rpnExpression
         self.output = []
         self.branch = None
-        self.derivateFunc = {'+' : self.DerivateSum, '-' : self.DerivateSum}
+        self.derivateFunc = {'+' : self.DerivateSum, '-' : self.DerivateSum, '*' : self.DerivateMul}
     
     def Print(self):
         self.branch.Print()
         print('')
         
     def DerivateSum(self, branch):
-        
-        workingBranch = (branch[0] if branch != None else self.branch)
+        workingBranch = (branch if branch != None else self.branch)
 
         for i in range(2):
-            if isinstance(workingBranch.operand[i], Operand):
-                if workingBranch.operand[i].type == OPERAND_CONSTANT:
-                    workingBranch.operand[i].value = 0
-                elif workingBranch.operand[i].type == OPERAND_VARIABLE:
-                    workingBranch.operand[i].type = OPERAND_CONSTANT
-                else:
-                    print('Unknown operand type')
-                    return False
+            if not self.Derivate(workingBranch.operand[i]):
+                return False
         return True
+
+    def DerivateMul(self, branch):
+        workingBranch = (branch if branch != None else self.branch)
+        dup1, dup2 = workingBranch.Duplicate(), workingBranch.Duplicate()
+        workingBranch.operand = [dup1, dup2]
+        workingBranch.operator = '+'
+        for i in range(2):
+            self.Derivate(workingBranch.operand[i].operand[i])
+
+
+        return True
+        
+
 
 def main():
 
